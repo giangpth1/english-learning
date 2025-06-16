@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the meaning of English words</title>
+    <!-- Bạn có thể thêm CSS framework như Bootstrap tại đây nếu muốn -->
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        .messages li { list-style-type: none; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .messages .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .messages .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .messages .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"] { width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Guess the meaning of English words</h1>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if word %}
+            <h2>Word to predict: <strong>{{ word.english_word }}</strong></h2>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ form.translation.label_tag }}
+                {{ form.translation }}
+                {% if form.translation.errors %}
+                    {% for error in form.translation.errors %}
+                        <p style="color: red;">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <button type="submit">Check</button>
+            {% if not word and not messages %} <!-- Chỉ hiển thị nút này nếu không có từ nào và không có message warning ban đầu -->
+                 <a href="{% url 'randeng:random_word_quiz' %}"><button type="button">Retry / New word</button></a>
+            {% endif %}
+        </form>
+    </div>
+</body>
+</html>
