@@ -5,11 +5,12 @@ from .viewsets import RandomWordQuizView, EnglishWordViewSet
 app_name = 'words'
 
 # Create a router and register our viewsets with it.
-router = DefaultRouter()
-router.register(r'api/words', EnglishWordViewSet, basename='word-api')
+# This router will be imported and included in the project's main urls.py under the /api/ prefix
+words_api_router = DefaultRouter() # Rename router
+words_api_router.register(r'words', EnglishWordViewSet, basename='word') # Register at 'words'
 
 urlpatterns = [
     path('', RandomWordQuizView.as_view(), name='random_word_quiz'),
     # The API URLs are now determined automatically by the router.
-    path('', include(router.urls)),
+    # Remove the inclusion of the router here:
 ]
