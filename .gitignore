@@ -3,7 +3,7 @@ cache/
 migrate/
 
 **/__pycache__/
-**/migrations/
+# **/migrations/
 
 src/db.sqlite3
 src/.env
