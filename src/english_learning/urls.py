@@ -15,9 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include # Add include
+from django.urls import path, include
+from words.urls import words_api_router # Import API router từ app words
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('random-english-word/', include('words.urls')),
+    # URL cho các trang web (ví dụ: trang quiz)
+    path('random-english-word/', include('words.urls', namespace='words-web')), # Thêm namespace để phân biệt
+    # URL cho API
+    path('api/', include(words_api_router.urls)), # Bao gồm các API của app words, ví dụ: /api/words/
+    path('api/users/', include('users.urls', namespace='users_api')),     # Bao gồm API đăng ký, đăng nhập
 ]

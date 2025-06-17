@@ -85,8 +85,8 @@ class EnglishWordViewSet(viewsets.ModelViewSet):
     queryset = EnglishWord.objects.all().order_by('-id')
     serializer_class = EnglishWordSerializer
 
-    @action(detail=False, methods=['get'])
-    def random(self, request):
+    @action(detail=False, methods=['get'], url_path='medium-quiz-choices')
+    def medium_quiz_choices(self, request):
         """
         Get a random English word.
         """
@@ -117,3 +117,87 @@ class EnglishWordViewSet(viewsets.ModelViewSet):
         valid_raw_translations = [t for t in correct_translations_raw if t]
 
         return response.Response({"is_correct": is_correct, "correct_translations": valid_raw_translations})
+
+    @action(detail=False, methods=['get'], url_path='easy-quiz-choices') # Changed detail to False, removed pk
+    def easy_quiz_choices(self, request):
+        """
+        Provides 3 Vietnamese translation choices for a quiz (easy difficulty).
+        The API randomly selects an English word and provides:
+        1. The English word itself.
+        2. vietnamese_translation_1 of this randomly selected word.
+        2. vietnamese_translation_1 of a different random word.
+        3. vietnamese_translation_1 of another different random word.
+        """
+        all_words = list(EnglishWord.objects.all())
+        if not all_words:
+            return response.Response({"detail": "No words available in the database."}, status=status.HTTP_404_NOT_FOUND)
+
+        current_word = random.choice(all_words)
+        if not current_word.vietnamese_translation_1:
+             # Or handle this case differently, e.g., pick another word
+            return response.Response(
+                {"detail": f"Word '{current_word.english_word}' does not have a primary Vietnamese translation."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        current_word_translation = current_word.vietnamese_translation_1
+
+        other_words = list(EnglishWord.objects.exclude(pk=current_word.pk))
+
+        if len(other_words) < 2:
+            return response.Response(
+                {"detail": "Not enough other words available to generate two distinct choices."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        random_choices = random.sample(other_words, 2)
+        
+        return response.Response({
+            "english_word": current_word.english_word,
+            "correct_translation": current_word_translation, # Renamed for clarity
+            "other_random_translations": [
+                random_choices[0].vietnamese_translation_1,
+                random_choices[1].vietnamese_translation_1
+            ]
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='check-easy-translation')
+    def check_easy_translation(self, request):
+        """
+        Checks if the selected Vietnamese translation for a given English word is correct.
+        This is for the "easy" quiz type where choices are provided.
+        Expects {'english_word': 'word', 'selected_translation': 'translation'} in the request body.
+        """
+        english_word_str = request.data.get('english_word')
+        selected_translation_str = request.data.get('selected_translation')
+
+        if not english_word_str or not selected_translation_str:
+            return response.Response(
+                {"detail": "Missing 'english_word' or 'selected_translation'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            word_obj = EnglishWord.objects.get(english_word__iexact=english_word_str)
+        except EnglishWord.DoesNotExist:
+            return response.Response(
+                {"detail": f"Word '{english_word_str}' not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        correct_primary_translation = word_obj.vietnamese_translation_1
+        if not correct_primary_translation:
+            return response.Response(
+                {"detail": f"Word '{english_word_str}' does not have a primary Vietnamese translation defined."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        normalized_selected = normalize_text_for_comparison(selected_translation_str.strip())
+        normalized_correct = normalize_text_for_comparison(correct_primary_translation.strip())
+
+        is_correct = (normalized_selected == normalized_correct)
+
+        return response.Response({
+            "is_correct": is_correct,
+            "correct_translation": correct_primary_translation # Trả về bản dịch đúng (chưa chuẩn hóa)
+        }, status=status.HTTP_200_OK)
